@@ -3,37 +3,64 @@ library(sf)
 library(ggplot2)
 library(dplyr)
 library(data.table)
+library(terra)
+library(tools)
 
+# Extent Types
 BOUNDING_BOX <- "bbox"
 MCP <- "mcp"
+CUSTOM_EXTENT <- "custom_extent"
+
+# Scale Options
 POPULATION <- "population"
 INDIVIDUAL <- "individual"
 
 
-get_extent <- function(observed_move_data, extent_type, percent = 100) {
+get_extent <- function(observed_move_data, extent_type, extent_buffer) {
+  
+  # convert all extents to a polygon
   if (extent_type == MCP) {
-    centroid <- sf::st_centroid(sf::st_union(observed_move_data))
-    dist <- as.numeric(sf::st_distance(observed_move_data, centroid))
-    within_percentile_range <- dist <= quantile(dist, percent / 100)
-    filtered_data <- st_union(observed_move_data[within_percentile_range, ])
-    extent <- st_convex_hull(filtered_data)
+    extent <- terra::convHull(terra::vect(observed_move_data))
+  } else if (extent_type == BOUNDING_BOX) {
+    extent <- terra::as.polygons(
+      terra::ext(observed_move_data), crs = crs(observed_move_data))
+  } else if (extent_type == CUSTOM_EXTENT) {
+    extent <- terra::vect(getAuxiliaryFilePath("custom_extent_file"))
   } else {
-    extent <- st_bbox(observed_move_data)
+    stop("Unknown extent")
   }
 
-  return(extent)
+  custom_mask_file_path <- getAuxiliaryFilePath("custom_mask_file")
+  
+  if (!is.null(custom_mask_file_path)) {
+    custom_mask <- terra::vect(custom_mask_file_path)
+    extent <- terra::crop(extent, custom_mask)
+  }
+  
+  buffered_extent <- terra::buffer(extent, extent_buffer)
+  
+  return(buffered_extent)
 }
 
 
 get_background_points_df <- function(extent, track_id_column,
-                                     observed_move_data, points_ratio, type = "random") {
+                                     observed_move_data, points_ratio) {
+  
   # generate background points
-  background_points_df <- st_sample(extent,
+  spat_sample_args <- list(
+    x = extent,
     size = nrow(observed_move_data) * points_ratio,
-    type = type
-  ) |>
-    st_coordinates() |>
+    method = "random"
+  )
+
+  background_points_df <- do.call(terra::spatSample, args = spat_sample_args) |>
+    geom() |>
     as.data.frame() |>
+    dplyr::select(x, y) |>
+    rename(
+      X = x,
+      Y = y
+    ) |>
     mutate(
       case = 0
     )
@@ -65,13 +92,47 @@ get_background_points_df <- function(extent, track_id_column,
 }
 
 
+validate_settings <- function(scale, extent_type, custom_extent_file, custom_mask_file) {
+  if (scale == INDIVIDUAL & extent_type == CUSTOM_EXTENT) {
+    stop("Custom extents only work with a Population scale, please update the scale to use custom extent.")
+  }
 
-rFunction <- function(data, scale, points_ratio, extent_type) {
+  custom_extent_file_path <- getAuxiliaryFilePath("custom_extent_file")
+
+  if (extent_type == CUSTOM_EXTENT) {
+    if (is.null(custom_extent_file_path)) {
+      stop("You selected 'Custom Extent' but did not provide a custom extent file. Either upload a gpkg file or select a different extent type.")
+    }
+
+    if (file_ext(custom_extent_file_path) != "gpkg") {
+      stop("Custom Extent File must be a gpkg file containing one or more polygons.")
+    }
+  }
+
+  custom_mask_file_path <- getAuxiliaryFilePath("custom_mask_file")
+
+  if (!is.null(custom_mask_file_path)) {
+    if (file_ext(custom_mask_file_path) != "gpkg") {
+      stop("Custom Mask File must be a gpkg file containing one or more polygons.")
+    }
+  }
+}
+
+
+rFunction <- function(data, scale, points_ratio, extent_type,
+                      custom_extent_file, extent_buffer, custom_mask_file) {
+  
+  validate_settings(scale, extent_type, extent_buffer)
   original_track_id_column <- mt_track_id_column(data)
   track_attribute_data <- mt_track_data(data)
 
   if (scale == "population") {
-    extent <- get_extent(observed_move_data = data, extent_type = extent_type)
+    extent <- get_extent(
+      observed_move_data = data,
+      extent_type = extent_type,
+      extent_buffer = extent_buffer
+    )
+    
     final_data_df <- get_background_points_df(
       extent = extent,
       track_id_column = original_track_id_column,
@@ -94,7 +155,8 @@ rFunction <- function(data, scale, points_ratio, extent_type) {
 
       extent <- get_extent(
         observed_move_data = individual_data,
-        extent_type = extent_type
+        extent_type = extent_type,
+        extent_buffer = extent_buffer
       )
 
       background_point_df <- get_background_points_df(
@@ -130,7 +192,7 @@ rFunction <- function(data, scale, points_ratio, extent_type) {
 
     if (scale == INDIVIDUAL) {
       plot <- plot +
-        facet_wrap(sym(original_track_id_column))
+        facet_wrap(~ get(original_track_id_column))
     }
 
     ggsave(plot,
