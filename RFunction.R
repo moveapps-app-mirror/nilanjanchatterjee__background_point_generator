@@ -31,10 +31,10 @@ get_extent <- function(observed_move_data, extent_type, extent_buffer) {
   }
 
   custom_mask_file_path <- getAuxiliaryFilePath("custom_mask_file")
-  
+
   if (!is.null(custom_mask_file_path)) {
     custom_mask <- terra::vect(custom_mask_file_path)
-    extent <- terra::crop(extent, custom_mask)
+    extent <- terra::erase(extent, custom_mask)
   }
   
   buffered_extent <- terra::buffer(extent, extent_buffer)
@@ -92,7 +92,12 @@ get_background_points_df <- function(extent, track_id_column,
 }
 
 
-validate_settings <- function(scale, extent_type, custom_extent_file, custom_mask_file) {
+validate_settings <- function(scale, points_ratio, extent_type, custom_extent_file, custom_mask_file) {
+  
+  if (points_ratio %% 1 != 0) {
+    stop("The points ratio must be an integer, please update this setting and run again.")
+  }
+  
   if (scale == INDIVIDUAL & extent_type == CUSTOM_EXTENT) {
     stop("Custom extents only work with a Population scale, please update the scale to use custom extent.")
   }
@@ -122,7 +127,7 @@ validate_settings <- function(scale, extent_type, custom_extent_file, custom_mas
 rFunction <- function(data, scale, points_ratio, extent_type,
                       custom_extent_file, extent_buffer, custom_mask_file) {
   
-  validate_settings(scale, extent_type, extent_buffer)
+  validate_settings(scale, points_ratio, extent_type, extent_buffer)
   original_track_id_column <- mt_track_id_column(data)
   track_attribute_data <- mt_track_data(data)
 
