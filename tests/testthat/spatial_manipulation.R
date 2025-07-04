@@ -207,8 +207,13 @@ create_simple_random_polygons <- function(custom_extent, n_inside = 5, n_overlap
 # Simple usage:
 # simple_random_polys <- create_simple_random_polygons(custom_extent, 5, 5)
 
-custom_extent <- terra::vect(here("tests/testthat/data/local_app_files/uploaded-app-files/custom_extent_file/my-custom-ext.gpkg"))
-simple_random_polys <- create_simple_random_polygons(custom_extent, 5, 5)
+custom_extent <- terra::vect(here("tests/testthat/data/local_app_files/uploaded-app-files/custom_extent_file/my_custom_ext.gpkg"))
+
+custom_extent2 <- terra::project(custom_extent, "epsg:4087")
+
+terra::writeVector(custom_extent2, here("tests/testthat/data/local_app_files/uploaded-app-files/custom_extent_file/my_custom_ext.gpkg"), overwrite = T)
+
+simple_random_polys <- create_simple_random_polygons(custom_extent2, 5, 5)
 plot(simple_random_polys)
 
 library(tidyterra)
@@ -216,4 +221,4 @@ ggplot() +
   geom_spatvector(data = custom_extent) +
   geom_spatvector(data = simple_random_polys)
 
-terra::writeVector(simple_random_polys, filename = here("tests/testthat/data/local_app_files/uploaded-app-files/custom_mask_file/my_custom_mask.gpkg"))
+terra::writeVector(simple_random_polys, filename = here("tests/testthat/data/local_app_files/uploaded-app-files/custom_mask_file/my_custom_mask.gpkg"), overwrite = T)

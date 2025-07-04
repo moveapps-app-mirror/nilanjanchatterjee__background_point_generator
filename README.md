@@ -30,7 +30,7 @@ The App should work for any kind of (location) data. The greater the ratio of ob
 `move2::move2_loc`
 
 ### Artefacts
-`observed_background_points.csv`: a basic plot containing the locations of observed and background points. This should just give you an idea of how many background points were generated and where they occurred.
+`observed_background_points.png`: a basic plot containing the locations of observed and background points. This should just give you an idea of how many background points were generated and where they occurred.
 
 ### Settings 
 
@@ -38,11 +38,13 @@ The App should work for any kind of (location) data. The greater the ratio of ob
 
 *Ratio of used versus background points (`points_ratio`):* The ratio of observed versus background points that you want to use for the resource selection function. Default value is *10*.
 
-**Extent Type (`extent_type`):** Specify where you want to generate background points for the resource selection function. *Bounding Box* will generate the background points for the whole bounding box rectangle area used by the individuals/population and *Minimum Convex Polygon* (MCP) will generate the background points in the MCP used by the individuals/population. If your scale is 'Population', you can also select *Custom Extent* and upload a shape file under the Custom Extent Shape File setting. Default value is *Bounding Box*.
+**Extent Type (`extent_type`):** Specify where you want to generate background points for the resource selection function. *Bounding Box* will generate the background points for the whole bounding box rectangle area used by the individuals/population and *Minimum Convex Polygon* (MCP) will generate the background points in the MCP used by the individuals/population. If your scale is 'Population', you can also select *Custom Extent* and upload a shape file under the Custom Extent GPKG File setting. Default value is *Bounding Box*.
 
-**Custom Extent Shape File (`custom_extent`):** Upload your local shape file containing a polygon that defines the area in which you want the background points to be generated. The shape file will be projected into the projection of the input move2 object. Note that if the shape file does not intersect with any of the locations in the move2 object, the app will log an error and return. Additionally, the custom extent is only available if scale is "Population".
+**Custom Extent GPKG File (`custom_extent_file`):** Upload your local GPKG file (ending in .gpkg) containing a polygon that defines the area in which you want the background points to be generated. The polygon will be projected into the projection of the input move2 object. The custom extent is only available if scale is "Population".
 
 **Extent Buffer (`extent_buffer`):** Provide an additional buffer to extend the extent selected above. The buffer will be applied in the map units present in the move2 data object (typically meters). The default value is 0, i.e., no buffer.
+
+**Custom Mask GPKG File (`custom_mask_file`):** Upload your local GPKG file (ending in .gpkg) containing the polygons in which you do NOT want the app to generate background points. The polygons should indicate known non-habitat areas. Note that for now observed points within the mask areas will still be preserved. A custom mask can be used with any scale and extent type.
 
 
 
@@ -52,8 +54,9 @@ The output data is the original input data combined with the background points d
 
 ### Most common errors
 
-There is an uploaded custom extent and the scale is not set to "Population".
+- There is an uploaded custom extent and the scale is not set to "Population".
+- There is an uploaded custom extent and the extent type is not set to  "Custom Extent".
 
 ### Null or error handling
 
-If a custom extent is uploaded but the scale is set to "Individual", the app will log an error and return nothing. If a custom extent is uploaded and does not intersect with any of the locations present in the input data (e.g., the shape file is actually for a different location), the app will log an error and return nothing.
+If a custom extent is uploaded but the scale is set to "Individual", the app will log an error and return nothing. If the custom extent does not overlap with the observed data at all, you will be able to tell this is happening by looking at the plot in `observed_background_points.png`.

@@ -26,6 +26,10 @@ get_extent <- function(observed_move_data, extent_type, extent_buffer) {
       terra::ext(observed_move_data), crs = crs(observed_move_data))
   } else if (extent_type == CUSTOM_EXTENT) {
     extent <- terra::vect(getAuxiliaryFilePath("custom_extent_file"))
+    if(!same.crs(observed_move_data, extent)) {
+      logger.info("Projecting custom extent to the crs of the move2 data...")
+      extent <- terra::project(extent, crs(observed_move_data))
+    }
   } else {
     stop("Unknown extent")
   }
@@ -34,6 +38,12 @@ get_extent <- function(observed_move_data, extent_type, extent_buffer) {
 
   if (!is.null(custom_mask_file_path)) {
     custom_mask <- terra::vect(custom_mask_file_path)
+    
+    if(!same.crs(custom_mask, observed_move_data)) {
+      logger.info("Projecting custom mask to the crs of the move2 data...")
+      custom_mask <- terra::project(custom_mask, crs(observed_move_data))
+    }
+    
     extent <- terra::erase(extent, custom_mask)
   }
   
@@ -112,6 +122,10 @@ validate_settings <- function(scale, points_ratio, extent_type, custom_extent_fi
     if (file_ext(custom_extent_file_path) != "gpkg") {
       stop("Custom Extent File must be a gpkg file containing one or more polygons.")
     }
+  }
+  
+  if (extent_type != CUSTOM_EXTENT & !is.null(custom_extent_file_path)) {
+    stop("You uploaded a Custom Extent File but did not select Custom Extent as your extent type. Please update your settings and run again.")
   }
 
   custom_mask_file_path <- getAuxiliaryFilePath("custom_mask_file")
