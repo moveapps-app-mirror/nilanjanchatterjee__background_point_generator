@@ -1,8 +1,9 @@
 {
-  "settings": [{
+  "settings": [
+    {
       "id": "scale",
       "name": "Scale",
-      "description": "Specify how you want to perform the resource selection function. Population will generate the background point for the whole area used by the individuals and Individual will generate background points based on the range of individuals.",
+      "description": "Specify how you want to perform the resource selection function. Population will generate the background point for the whole area used by the individuals and Individual will generate background points based on the range of each individual.",
       "defaultValue": "population",
       "type": "RADIOBUTTONS",
       "options": [
@@ -16,8 +17,8 @@
         }
       ]
     },
-	{
-      "id": "points",
+    {
+      "id": "points_ratio",
       "name": "Ratio of used versus background points",
       "description": "Provide the ratio of the used versus background points that you want to use for the resource selection function.",
       "defaultValue": 10,
@@ -26,7 +27,7 @@
     {
       "id": "extent_type",
       "name": "Extent Type",
-      "description": "Specify where you want to generate background points for the resource selction function. Bounding Box will generate the background points for the whole bounding box rectangle area used by the individuals/population and Minimum Convex Polygon (MCP) will generate the background points in the MCP used by the individuals/population.",
+      "description": "Specify where you want to generate background points for the resource selction function. Bounding Box will generate the background points for the whole bounding box rectangle area used by the individuals or population and Minimum Convex Polygon (MCP) will generate the background points in the MCP used by the individuals or population. If your scale is 'Population', you can also select 'Custom Extent' and upload a GPKG file under the next setting.",
       "defaultValue": "bbox",
       "type": "RADIOBUTTONS",
       "options": [
@@ -37,11 +38,33 @@
         {
           "value": "mcp",
           "displayText": "Minimum Convex Polygon (MCP)"
+        },
+        {
+          "value": "custom_extent",
+          "displayText": "Custom Extent (for Population only)"
         }
       ]
     },
-    ],
-    
+    {
+      "id": "custom_extent_file",
+      "name": "Custom Extent GPKG File [Optional]",
+      "description": "Upload your local GPKG file (ending in .gpkg) containing a polygon that defines the area in which you want the background points to be generated.",
+      "type": "USER_FILE"
+    },
+    {
+      "id": "extent_buffer",
+      "name": "Extent Buffer",
+      "description": "Provide an additional buffer to extend the extent selected above. The buffer will be applied in the map units present in the move2 data object (typically meters). The default value is 0, i.e., no buffer.",
+      "defaultValue": 0,
+      "type": "DOUBLE"
+    },
+    {
+      "id": "custom_mask_file",
+      "name": "Custom Mask GPKG File [Optional]",
+      "description": "Upload your local GPKG file (ending in .gpkg) containing the polygons in which you do NOT want the app to generate background points. The polygons should indicate known non-habitat areas. Note that for now observed points within the mask areas will still be preserved.",
+      "type": "USER_FILE"
+    }
+  ],
   "dependencies": {
     "R": [
       {
@@ -58,6 +81,12 @@
       },
       {
         "name": "data.table"
+      },
+      {
+        "name": "terra"
+      },
+      {
+        "name": "tools"
       }
     ]
   },
@@ -68,10 +97,13 @@
   "language": "eng",
   "keywords": [
     "point generation",
-    "random point",
+    "random points",
     "spatial sampling",
     "resource selection",
-    "animal movement"
+    "animal movement",
+    "background points",
+    "availabile points_ratio",
+    "RSF"
   ],
   "people": [
     {
@@ -97,14 +129,13 @@
       "affiliation": "University of Minnesota",
       "affiliationRor": "https://ror.org/03grvy078"
     }
-		
   ],
   "funding": [
     {
-	"name": "NASA MoveApps Project"
-	}
+      "name": "NASA MoveApps Project"
+    }
   ],
-  "documentation" : {
+  "documentation": {
     "url": "https://github.com/nilanjanchatterjee/Background_point_generator/blob/main/README.md"
   }
 }
